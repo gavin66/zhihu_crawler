@@ -3,12 +3,14 @@ import requests
 import requests.packages.urllib3 as urllib3
 import time
 import os
+import sys
 import json
 from .setting import CAPTCHA_URL, LOGIN_URL, CLIENT_SECRET, LOGIN_DATA, TOKEN_PATH, LOG_PATH
 from .zhihu_oauth import BearerToken, OauthToken
+from .exception import GetDataERRORException, NeedCaptchaException
 
 
-class Client:
+class Client(object):
     def __init__(self):
         """
         客户端,所有操作的入口.
@@ -38,6 +40,8 @@ class Client:
             'Connection': 'keep-alive',
         })
 
+        self._token = None
+
     @property
     def logger(self, name='zhihu', filename=LOG_PATH):
         """
@@ -59,38 +63,40 @@ class Client:
         self._logger.setLevel(logging.INFO)
         formatter = logging.Formatter(fmt='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
                                       datefmt='%Y-%m-%d %H:%M:%S')
-        file_handler = RotatingFileHandler(filename, mode='a', maxBytes=10 * 1024 * 1024, backupCount=6)
+        file_handler = RotatingFileHandler(filename, mode='a', maxBytes=10 * 1024 * 1024, backupCount=6,
+                                           encoding='utf-8')
         file_handler.setFormatter(formatter)
         self._logger.addHandler(file_handler)
         return self._logger
 
-    def login(self, username=None, password=None):
+    def login(self, username=None, password=None, load_token=True):
         """
         登录知乎
         默认会使用已保存的 token 进行登录
         :param username:
         :param password:
-        :param captcha:
+        :param load_token:
         :return:
         """
 
-        # 加载已保存 token ?
-        if self.load_token():
-            return None
+        # 自动加载已保存的 token
+        if load_token:
+            if self.load_token():
+                return None
 
         print('登录知乎,如果输入手机号,前缀请加"+86"')
         # 输入帐号密码
         username = username or input('email/phone: ')
         password = password or input('password: ')
 
-        # 是否需要 captcha
-        # client_id=8d5227e0aaaa4797a763ac64e0c3b8&grant_type=password&password=dnjdkd&signature=f45d729cdcdfa7a0ea776564087f996e3f74fc03&source=com.zhihu.android&timestamp=1493174411&username=tianyu_0723%40hotmail.com
-        # {'error': {'message': 'Client authentication failed.', 'code': 602}}
-
         # 是否需要验证码
-        if self.need_captcha():
-            # 获取验证码
-            return '需要验证码'
+        try:
+            if self.need_captcha():
+                raise NeedCaptchaException
+        except GetDataERRORException as e:
+            log = 'Login failed, reason: {}'.format(str(e))
+            self.logger.error(log)
+            sys.exit(log)
 
         # 登录需要的参数
         data = LOGIN_DATA
@@ -104,17 +110,18 @@ class Client:
 
         # 发送登录请求
         response = self._session.post(LOGIN_URL, data=data, auth=OauthToken())
-        json_dict = response.json()
+        token = response.json()
 
         # 登录失败,返回失败原因
-        if 'error' in json_dict:
-            self.logger.error('login failed')
-            return '登录失败,' + json_dict['error']['message']
+        if 'error' in token:
+            log = 'Login failed, reason: {}'.format(token['error']['message'])
+            self.logger.error(log)
+            sys.exit(log)
         else:
+            self._token = token
             self.logger.info('login successful username[%s]', username)
             # 登录成功 auth 更新
-            self._session.auth = BearerToken(json_dict['token_type'], json_dict['access_token'])
-
+            self._session.auth = BearerToken(token['token_type'], token['access_token'])
             # 创建目录
             if not os.path.isdir(os.path.dirname(TOKEN_PATH)):
                 os.makedirs(os.path.dirname(TOKEN_PATH))
@@ -127,11 +134,12 @@ class Client:
         是否需要验证码
         :return:
         """
-        response = self._session.get(CAPTCHA_URL, auth=OauthToken())
-        r_dict = response.json()
-        # print(response)
-        # return True
-        return r_dict['show_captcha']
+        res = self._session.get(CAPTCHA_URL, auth=OauthToken())
+        try:
+            data = res.json()
+            return data['show_captcha']
+        except(KeyError, Exception):
+            raise GetDataERRORException(CAPTCHA_URL, res)
 
     def show_captcha(self):
         pass
@@ -151,8 +159,9 @@ class Client:
         # 固定路径
         if os.path.isfile(TOKEN_PATH):
             with open(TOKEN_PATH, 'r') as fp:
-                json_dict = json.load(fp)
-            self._session.auth = BearerToken(json_dict['token_type'], json_dict['access_token'])
+                token = json.load(fp)
+            self._token = token
+            self._session.auth = BearerToken(token['token_type'], token['access_token'])
             self.logger.info('load token successful')
             return True
         return False
@@ -174,7 +183,10 @@ class Client:
         :return:
         """
         from .myself import Myself
-        return Myself(self._session)
+        return Myself(self._token['uid'], self._session, self.logger)
 
-
-
+    def people(self, uid=None):
+        from .people import People
+        if uid is None:
+            uid = self._token['uid']
+        return People(uid, self._session, self.logger)

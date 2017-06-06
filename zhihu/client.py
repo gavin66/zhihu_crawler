@@ -5,9 +5,9 @@ import time
 import os
 import sys
 import json
-from .setting import CAPTCHA_URL, LOGIN_URL, CLIENT_SECRET, LOGIN_DATA, TOKEN_PATH, LOG_PATH
-from .zhihu_oauth import BearerToken, OauthToken
-from .exception import GetDataERRORException, NeedCaptchaException
+from .configurations import CAPTCHA_URL, LOGIN_URL, CLIENT_SECRET, LOGIN_DATA, TOKEN_PATH, LOG_PATH
+from .auth import BearerToken, OauthToken
+from .exceptions import GetDataERRORException, NeedCaptchaException
 
 
 class Client(object):
@@ -105,7 +105,7 @@ class Client(object):
         data['password'] = password
 
         # 添加签名 signature
-        from .tools import login_signature
+        from .utils import login_signature
         login_signature(key=CLIENT_SECRET, data=data)
 
         # 发送登录请求
@@ -145,11 +145,8 @@ class Client(object):
         pass
 
     def get_captcha(self):
-        """
-        获取验证码,图片
-        :return:
-        """
-        print(self._session.get(CAPTCHA_URL).text)
+        # print(self._session.get(CAPTCHA_URL).text)
+        pass
 
     def load_token(self):
         """
@@ -182,11 +179,16 @@ class Client(object):
         我的信息
         :return:
         """
-        from .myself import Myself
+        from .models import Myself
         return Myself(self._token['uid'], self._session, self.logger)
 
     def people(self, uid=None):
-        from .people import People
+        """
+        某个用户的相关信息及操作
+        :param uid:
+        :return:
+        """
+        from .models import People
         if uid is None:
             uid = self._token['uid']
         return People(uid, self._session, self.logger)

@@ -1,11 +1,14 @@
 # -*- coding: UTF-8 -*-
-import requests
-import requests.packages.urllib3 as urllib3
-import time
+import json
 import os
 import sys
-import json
-from .configurations import CAPTCHA_URL, LOGIN_URL, CLIENT_SECRET, LOGIN_DATA, TOKEN_PATH, LOG_PATH
+import time
+
+import requests
+import urllib3
+
+from util.logger import logger
+from config import CAPTCHA_URL, LOGIN_URL, CLIENT_SECRET, LOGIN_DATA, TOKEN_PATH
 from .auth import BearerToken, OauthToken
 from .exceptions import GetDataERRORException, NeedCaptchaException
 
@@ -16,58 +19,34 @@ class Client(object):
         客户端,所有操作的入口.
         """
 
-        self._logger = None
+        self._logger = logger
+
+        self._token = None
 
         # 开启会话
         self._session = requests.session()
 
-        # 不验证 ssl
-        self._session.verify = False
-        # 禁用 ssl 警告
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
         # 设置 http 头信息
         self._session.headers.update({
-            'User-Agent': 'Futureve/4.50.0 Mozilla/5.0 (Linux; Android 4.4.4; 2014811 Build/KTU84P) AppleWebKit/537.36 '
-                          '(KHTML, like Gecko) Version/4.0 Chrome/33.0.0.0 Mobile Safari/537.36 '
+            'User-Agent': 'com.zhihu.android/Futureve/5.1.1 Mozilla/5.0 (Linux; Android 4.4.4; 2014811 Build/KTU84P) '
+                          'AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/33.0.0.0 Mobile Safari/537.36 '
                           'Google-HTTP-Java-Client/1.22.0 (gzip)',
-            'x-api-version': '3.0.57',
-            'x-app-version': '4.50.0',
-            'x-app-za': 'OS=Android&Release=4.4.4&Model=2014811&VersionName=4.50.0&VersionCode=481&Width=720'
-                        '&Height=1280&Installer=%E8%B1%8C%E8%B1%86%E8%8D%9A&WebView=33.0.0.0',
+            'x-api-version': '3.0.66',
+            'x-app-version': '5.1.1',
+            'x-app-za': 'OS=Android&Release=4.4.4&Model=2014811&VersionName=5.1.1&VersionCode=533&Width=720'
+                        '&Height=1280&Installer=360&WebView=33.0.0.0DeviceType=AndroidPhoneBrand=Xiaomi',
             'x-app-build': 'release',
+            'x-network-type': 'WiFi',
+            'x-suger': 'SU1FST04Njc2MjIwMjQ1Njc4MDU7QU5EUk9JRF9JRD1jOTY1NGVkMzcwMWRjYjU1O01BQz05Yzo5OTphMDpiZjo3YzpjMQ',
             'x-udid': 'AGCCEL7IpwtLBdi3V7e7dsEXtuW9g1-pets=',
             'Connection': 'keep-alive',
         })
 
-        self._token = None
+        # 不验证 ssl
+        self._session.verify = False
 
-    @property
-    def logger(self, name='zhihu', filename=LOG_PATH):
-        """
-        日志
-        :param name:
-        :param filename:
-        :return:
-        """
-        if self._logger:
-            return self._logger
-
-        import logging
-        from logging.handlers import RotatingFileHandler
-
-        # 创建保存目录
-        if not os.path.isdir(os.path.dirname(LOG_PATH)):
-            os.makedirs(os.path.dirname(LOG_PATH))
-        self._logger = logging.getLogger(name)
-        self._logger.setLevel(logging.INFO)
-        formatter = logging.Formatter(fmt='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
-                                      datefmt='%Y-%m-%d %H:%M:%S')
-        file_handler = RotatingFileHandler(filename, mode='a', maxBytes=10 * 1024 * 1024, backupCount=6,
-                                           encoding='utf-8')
-        file_handler.setFormatter(formatter)
-        self._logger.addHandler(file_handler)
-        return self._logger
+        # 连接未验证的 HTTPS 请求时，不提示警告
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     def login(self, username=None, password=None, load_token=True):
         """
@@ -84,7 +63,7 @@ class Client(object):
             if self.load_token():
                 return None
 
-        print('登录知乎,如果输入手机号,前缀请加"+86"')
+        # print('登录知乎,如果输入手机号,前缀请加"+86"')
         # 输入帐号密码
         username = username or input('email/phone: ')
         password = password or input('password: ')
@@ -94,8 +73,8 @@ class Client(object):
             if self.need_captcha():
                 raise NeedCaptchaException
         except GetDataERRORException as e:
-            log = 'Login failed, reason: {}'.format(str(e))
-            self.logger.error(log)
+            log = '登录失败, {}'.format(str(e))
+            self._logger.error(log)
             sys.exit(log)
 
         # 登录需要的参数
@@ -114,12 +93,12 @@ class Client(object):
 
         # 登录失败,返回失败原因
         if 'error' in token:
-            log = 'Login failed, reason: {}'.format(token['error']['message'])
-            self.logger.error(log)
+            log = '登录失败, {}'.format(token['error']['message'])
+            self._logger.error(log)
             sys.exit(log)
         else:
             self._token = token
-            self.logger.info('login successful username[%s]', username)
+            self._logger.info('登录成功，用户[%s]', username)
             # 登录成功 auth 更新
             self._session.auth = BearerToken(token['token_type'], token['access_token'])
             # 创建目录
@@ -159,7 +138,7 @@ class Client(object):
                 token = json.load(fp)
             self._token = token
             self._session.auth = BearerToken(token['token_type'], token['access_token'])
-            self.logger.info('load token successful')
+            self._logger.info('load token successful')
             return True
         return False
 
@@ -180,7 +159,7 @@ class Client(object):
         :return:
         """
         from .models import Myself
-        return Myself(self._token['uid'], self._session, self.logger)
+        return Myself(self._token['uid'], self._session)
 
     def people(self, uid=None):
         """
@@ -191,4 +170,4 @@ class Client(object):
         from .models import People
         if uid is None:
             uid = self._token['uid']
-        return People(uid, self._session, self.logger)
+        return People(uid, self._session)

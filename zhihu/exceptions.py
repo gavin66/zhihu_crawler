@@ -21,10 +21,9 @@ class GetDataERRORException(ZhiHuException):
 
     def __repr__(self):
         if self._message:
-            return 'There was an error getting the data: {0}'.format(self._message)
+            return '获取数据时发生错误 --> {0}'.format(self._message)
         else:
-            return 'An unknown error occurred while getting the data' \
-                   '[{self._url}] response is [{self.res.text}]'.format(self=self)
+            return '请求地址 [{self._url}] 发生未知错误 --> [{self.res.text}]'.format(self=self)
 
     __str__ = __repr__
 

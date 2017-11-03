@@ -19,6 +19,7 @@ TOKEN_PATH = os.environ['HOME'] + '/zhihu_crawler/zhihu.token'
 
 # 日志文件
 LOG_PATH = os.environ['HOME'] + '/zhihu_crawler/zhihu.log'
+# LOG_PATH = 'zhihu.log'
 
 # 知乎 API 根地址
 API_URL = 'https://api.zhihu.com'

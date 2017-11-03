@@ -1,12 +1,11 @@
 # -*- coding: UTF-8 -*-
-import os
-from .configurations import LOG_PATH
+from config import MYSELF_PROFILE_URL, PEOPLE_FOLLOWEES_URL, PEOPLE_FOLLOWERS_URL
 from .exceptions import GetDataERRORException
-from .configurations import MYSELF_PROFILE_URL, PEOPLE_FOLLOWEES_URL, PEOPLE_FOLLOWERS_URL
+from util.logger import logger
 
 
 class Base(object):
-    def __init__(self, uid, session, logger=None):
+    def __init__(self, uid, session):
         self._uid = uid
         self._session = session
         self._logger = logger
@@ -31,31 +30,10 @@ class Base(object):
         except Exception as e:
             raise e
 
-    @property
-    def logger(self, name='zhihu', filename=LOG_PATH):
-        if self._logger:
-            return self._logger
-
-        import logging
-        from logging.handlers import RotatingFileHandler
-
-        # 创建保存目录
-        if not os.path.isdir(os.path.dirname(LOG_PATH)):
-            os.makedirs(os.path.dirname(LOG_PATH))
-        self._logger = logging.getLogger(name)
-        self._logger.setLevel(logging.INFO)
-        formatter = logging.Formatter(fmt='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
-                                      datefmt='%Y-%m-%d %H:%M:%S')
-        file_handler = RotatingFileHandler(filename, mode='a', maxBytes=10 * 1024 * 1024, backupCount=6,
-                                           encoding='utf-8')
-        file_handler.setFormatter(formatter)
-        self._logger.addHandler(file_handler)
-        return self._logger
-
 
 class Myself(Base):
-    def __init__(self, uid, session, logger=None):
-        super(Myself, self).__init__(uid, session, logger)
+    def __init__(self, uid, session):
+        super(Myself, self).__init__(uid, session)
 
     def info(self):
         """
@@ -66,20 +44,16 @@ class Myself(Base):
 
 
 class People(Base):
-    def __init__(self, uid, session, logger=None):
-        super(People, self).__init__(uid, session, logger)
+    def __init__(self, uid, session):
+        super(People, self).__init__(uid, session)
 
-    def followees(self, uid=None, url=None):
+    def followees(self, uid=None, limit=20, offset=0):
         """
         我关注的人
         :return:
         """
-        if url:
-            data = self._get_data(url)
-        else:
-            data = self._get_data(PEOPLE_FOLLOWEES_URL.format(uid if uid else self._uid),
-                                  params={'limit': '20', 'offset': '0'})
-        return data
+        return self._get_data(url=PEOPLE_FOLLOWEES_URL.format(uid if uid else self._uid),
+                              params={'limit': limit, 'offset': offset})
 
     def followers(self, uid=None, url=None):
         """

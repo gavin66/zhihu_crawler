@@ -61,7 +61,7 @@ class Client(object):
         # 自动加载已保存的 token
         if load_token:
             if self.load_token():
-                return None
+                return self
 
         # print('登录知乎,如果输入手机号,前缀请加"+86"')
         # 输入帐号密码

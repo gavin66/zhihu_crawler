@@ -1,6 +1,9 @@
 # -*- coding: UTF-8 -*-
 import os
 
+# MONGO_URI = 'mongodb://%s:%s@%s:%s/admin' % ('username', 'password', 'ip', 'port')
+MONGODB_URI = 'mongodb://%s:%s@%s:%s/admin' % ('root', '123456', '127.0.0.1', '27017')
+
 CLIENT_ID = '8d5227e0aaaa4797a763ac64e0c3b8'
 CLIENT_SECRET = 'ecbefbf6b17e47ecb9035107866380'
 

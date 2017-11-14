@@ -24,7 +24,7 @@ class MongoDB(Base):
     def get_next_keep(self):
         try:
             # user_id = 5a07e14549d3d494065ac178，zhihu_id = 12545b636ef354d8d816c08862a3ec86
-            print('get_next_keep: zhihu_user_id %s zhihu_id %s' % (self.zhihu_user_id, self.zhihu_id))
+            # print('get_next_keep: zhihu_user_id %s zhihu_id %s' % (self.zhihu_user_id, self.zhihu_id))
             user = self._collection_user.find({'_id': {'$gt': ObjectId(self.zhihu_user_id)}}
                                               ).sort('_id', pymongo.ASCENDING).limit(1)[0]
             self.zhihu_user_id = user['_id']

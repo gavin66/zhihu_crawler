@@ -1,4 +1,8 @@
 # -*- coding: UTF-8 -*-
+import sys
+import os
+
+sys.path.append(os.path.dirname(sys.path[0]))
 
 from zhihu.client import Client
 from persistence.mongodb_impl import MongoDB
@@ -22,7 +26,7 @@ class Profile(object):
                 zhihu_id = myself_profile['id']
                 self._persister.store_keep(r.upserted_id, myself_profile['id'])
         while user_id and zhihu_id:
-            print('搜索用户 user_id = %s，zhihu_id = %s' % (user_id, zhihu_id))
+            print('爬取用户 user_id = %s，zhihu_id = %s' % (user_id, zhihu_id))
             for user in self._people.generator_for_followees(zhihu_id, page='all'):
                 self._persister.store_user(user['id'], user)
             try:

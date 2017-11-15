@@ -1,6 +1,6 @@
 # zhihu_crawler
 [gavin66](https://github.com/gavin66)/[zhihu_crawler](https://github.com/gavin66) 使用知乎移动端 APP 的 API 爬取数据。
-
+目前项目已实现知乎的自动登录，并可爬取用户资料数据（还未有学历等详细资料，之后会添加），需要数据进行分析的或者感兴趣的可以给个 star⭐，谢谢。
 
 
 ## 使用方法
@@ -68,6 +68,10 @@ people.followers()
 ## 运行截图
 
 ![](https://raw.githubusercontent.com/gavin66/zhihu_crawler/master/doc/p1.png)
+
+
+爬取数据的格式
+![](https://raw.githubusercontent.com/gavin66/zhihu_crawler/master/doc/p2.png)
 
 
 

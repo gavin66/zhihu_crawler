@@ -1,9 +1,11 @@
 # zhihu_crawler
-使用知乎移动端 APP 的 API 爬取数据。
+[gavin66](https://github.com/gavin66)/[zhihu_crawler](https://github.com/gavin66) 使用知乎移动端 APP 的 API 爬取数据。
 
 
 
 ## 使用方法
+
+> 你必须安装有 [mongoDB](https://www.mongodb.com/)
 
 **安装依赖**
 
@@ -66,3 +68,9 @@ people.followers()
 ## 运行截图
 
 ![](https://raw.githubusercontent.com/gavin66/zhihu_crawler/master/doc/p1.png)
+
+
+
+## 参考
+
+* 登录部分的实现在本人博客有说明 - [爬取知乎数据 - 模拟登录](http://blog.imgavin.me/2017/04/27/python-zhihu-api/)
